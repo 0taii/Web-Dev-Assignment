@@ -3,9 +3,9 @@
 /* CSS Custom Properties (Variables) */
 :root {
     /* Colours */
-    --primary-color: #667eea;
+    --primary-color: #cecece;
     --primary-dark: #5a67d8;
-    --secondary-color: #764ba2;
+    --secondary-color: #000000;
     --success-color: #28a745;
     --success-dark: #218838;
     --danger-color: #dc3545;
@@ -13,7 +13,7 @@
     --warning-color: #ffc107;
     --info-color: #007bff;
     --info-dark: #0056b3;
-    --dark-color: #333;
+    --dark-color: #0e0e0e;
     --light-color: #f4f4f4;
     --white-color: #ffffff;
     --gray-color: #666;
@@ -58,7 +58,7 @@
     --font-xxl: 2rem;
 }
 
-/* RESET & BASE STYLES */
+/* BASE STYLES */
 * {
     margin: 0;
     padding: 0;
