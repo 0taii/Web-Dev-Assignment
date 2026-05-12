@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>M's Manga Payment - Credit Card Details</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="page-center">
+    <div class="payment-container">
+        <h1 class="payment-title">Credit Card Payment</h1>
+        
+        <form id="paymentForm">
+            <div class="form-group">
+                <label class="form-label" for="cardNumber">Card Number</label>
+                <input type="text" id="cardNumber" class="form-control" placeholder="Enter 16-digit card number" maxlength="16">
+                <div class="form-error" id="cardNumberError"></div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-col">
+                    <label class="form-label" for="expMonth">Expiry Month</label>
+                    <select id="expMonth" class="form-select">
+                        <option value="">Select Month</option>
+                        <option value="01">01 - January</option>
+                        <option value="02">02 - February</option>
+                        <option value="03">03 - March</option>
+                        <option value="04">04 - April</option>
+                        <option value="05">05 - May</option>
+                        <option value="06">06 - June</option>
+                        <option value="07">07 - July</option>
+                        <option value="08">08 - August</option>
+                        <option value="09">09 - September</option>
+                        <option value="10">10 - October</option>
+                        <option value="11">11 - November</option>
+                        <option value="12">12 - December</option>
+                    </select>
+                </div>
+                <div class="form-col">
+                    <label class="form-label" for="expYear">Expiry Year</label>
+                    <select id="expYear" class="form-select">
+                        <option value="">Select Year</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-error" id="expiryError"></div>
+
+            <div class="form-group">
+                <label class="form-label" for="cvv">Security Code (CVV)</label>
+                <input type="text" id="cvv" class="form-control" placeholder="Enter 3 or 4 digit CVV" maxlength="4">
+                <div class="form-error" id="cvvError"></div>
+            </div>
+
+            <button type="submit" class="btn btn-info btn-block btn-lg">Continue</button>
+        </form>
+
+        <div id="serverMessage" class="alert mt-3"></div>
+        
+        <a href="index.html" class="btn btn-gray btn-block mt-2">← Back to Home</a>
+    </div>
+
+    <script>
+        // Populate year dropdown
+        const yearSelect = document.getElementById('expYear');
+        const currentYear = new Date().getFullYear();
+        for (let i = 0; i < 10; i++) {
+            const year = currentYear + i;
+            const option = document.createElement('option');
+            option.value = year;
+            option.textContent = year;
+            yearSelect.appendChild(option);
+        }
+
+        // Form validation and submission
+        document.getElementById('paymentForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            clearErrors();
+            
+            const cardNumber = document.getElementById('cardNumber').value.trim();
+            const expMonth = document.getElementById('expMonth').value;
+            const expYear = document.getElementById('expYear').value;
+            const cvv = document.getElementById('cvv').value.trim();
+            
+            let isValid = true;
+            
+            if (!validateCardNumber(cardNumber)) {
+                isValid = false;
+            }
+            
+            if (!validateExpiryDate(expMonth, expYear)) {
+                isValid = false;
+            }
+            
+            if (!validateCVV(cvv)) {
+                isValid = false;
+            }
+            
+            if (isValid) {
+                sendPayment(cardNumber, expYear, expMonth, cvv);
+            }
+        });
+        
+        function clearErrors() {
+            document.getElementById('cardNumberError').style.display = 'none';
+            document.getElementById('expiryError').style.display = 'none';
+            document.getElementById('cvvError').style.display = 'none';
+            document.getElementById('serverMessage').style.display = 'none';
+        }
+        
+        function validateCardNumber(cardNumber) {
+            if (cardNumber.length !== 16 || !/^\d+$/.test(cardNumber)) {
+                showError('cardNumberError', 'Card number must be exactly 16 digits');
+                return false;
+            }
+            
+            const firstTwoDigits = parseInt(cardNumber.substring(0, 2));
+            if (firstTwoDigits < 51 || firstTwoDigits > 55) {
+                showError('cardNumberError', 'Mastercard numbers must start with 51, 52, 53, 54, or 55');
+                return false;
+            }
+            
+            return true;
+        }
+        
+        function validateExpiryDate(month, year) {
+            if (!month || !year) {
+                showError('expiryError', 'Please select both month and year');
+                return false;
+            }
+            
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            const currentMonth = now.getMonth() + 1;
+            
+            const expYearNum = parseInt(year);
+            const expMonthNum = parseInt(month);
+            
+            if (expYearNum < currentYear || (expYearNum === currentYear && expMonthNum < currentMonth)) {
+                showError('expiryError', 'Card has expired');
+                return false;
+            }
+            
+            return true;
+        }
+        
+        function validateCVV(cvv) {
+            if (!/^\d+$/.test(cvv) || (cvv.length !== 3 && cvv.length !== 4)) {
+                showError('cvvError', 'Security code must be 3 or 4 digits');
+                return false;
+            }
+            
+            return true;
+        }
+        
+        function showError(elementId, message) {
+            const errorElement = document.getElementById(elementId);
+            errorElement.textContent = message;
+            errorElement.style.display = 'block';
+        }
+        
+        async function sendPayment(cardNumber, expYear, expMonth, cvv) {
+            const data = {
+                master_card: parseInt(cardNumber),
+                exp_year: parseInt(expYear),
+                exp_month: parseInt(expMonth),
+                cvv_code: cvv
+            };
+            
+            try {
+                const response = await fetch('https://mudfoot.doc.stu.mmu.ac.uk/node/api/creditcard', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    showServerMessage(result.message, 'success');
+                    
+                    const lastFourDigits = cardNumber.slice(-4);
+                    localStorage.setItem('lastFourDigits', lastFourDigits);
+                    
+                    setTimeout(() => {
+                        window.location.href = 'success.html';
+                    }, 2000);
+                } else {
+                    const errorData = await response.json();
+                    showServerMessage(errorData.message || 'Payment failed. Please check your details.', 'error');
+                }
+            } catch (error) {
+                showServerMessage('Network error. Please try again later.', 'error');
+            }
+        }
+        
+        function showServerMessage(message, type) {
+            const messageElement = document.getElementById('serverMessage');
+            messageElement.textContent = message;
+            messageElement.className = 'alert mt-3';
+            
+            if (type === 'success') {
+                messageElement.classList.add('alert-success');
+            } else {
+                messageElement.classList.add('alert-error');
+            }
+            
+            messageElement.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
