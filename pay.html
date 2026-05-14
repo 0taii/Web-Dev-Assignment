@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>M's Manga Payment - Credit Card Details</title>
+    <title>M's Manga - Payment</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body class="page-center">
@@ -60,7 +60,7 @@
     </div>
 
     <script>
-        // Populate year dropdown
+        //  Year dropdown
         const yearSelect = document.getElementById('expYear');
         const currentYear = new Date().getFullYear();
         for (let i = 0; i < 10; i++) {
@@ -75,7 +75,11 @@
         document.getElementById('paymentForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
-            clearErrors();
+            // Clear previous errors
+            document.getElementById('cardNumberError').style.display = 'none';
+            document.getElementById('expiryError').style.display = 'none';
+            document.getElementById('cvvError').style.display = 'none';
+            document.getElementById('serverMessage').style.display = 'none';
             
             const cardNumber = document.getElementById('cardNumber').value.trim();
             const expMonth = document.getElementById('expMonth').value;
@@ -84,15 +88,42 @@
             
             let isValid = true;
             
-            if (!validateCardNumber(cardNumber)) {
+            // Validate card number - must be 16 digits
+            if (cardNumber.length !== 16 || !/^\d+$/.test(cardNumber)) {
+                showError('cardNumberError', 'Card number must be exactly 16 digits');
                 isValid = false;
             }
             
-            if (!validateExpiryDate(expMonth, expYear)) {
-                isValid = false;
+            // Check if MasterCard (starts with 51-55)
+            if (isValid) {
+                const firstTwoDigits = parseInt(cardNumber.substring(0, 2));
+                if (firstTwoDigits < 51 || firstTwoDigits > 55) {
+                    showError('cardNumberError', 'Mastercard numbers must start with 51, 52, 53, 54, or 55');
+                    isValid = false;
+                }
             }
             
-            if (!validateCVV(cvv)) {
+            // Validate expiry date
+            if (!expMonth || !expYear) {
+                showError('expiryError', 'Please select both month and year');
+                isValid = false;
+            } else {
+                const now = new Date();
+                const currentYear = now.getFullYear();
+                const currentMonth = now.getMonth() + 1;
+                
+                const expYearNum = parseInt(expYear);
+                const expMonthNum = parseInt(expMonth);
+                
+                if (expYearNum < currentYear || (expYearNum === currentYear && expMonthNum < currentMonth)) {
+                    showError('expiryError', 'Card has expired');
+                    isValid = false;
+                }
+            }
+            
+            // Validate CVV - must be 3 or 4 digits
+            if (!/^\d+$/.test(cvv) || (cvv.length !== 3 && cvv.length !== 4)) {
+                showError('cvvError', 'Security code must be 3 or 4 digits');
                 isValid = false;
             }
             
@@ -101,65 +132,13 @@
             }
         });
         
-        function clearErrors() {
-            document.getElementById('cardNumberError').style.display = 'none';
-            document.getElementById('expiryError').style.display = 'none';
-            document.getElementById('cvvError').style.display = 'none';
-            document.getElementById('serverMessage').style.display = 'none';
-        }
-        
-        function validateCardNumber(cardNumber) {
-            if (cardNumber.length !== 16 || !/^\d+$/.test(cardNumber)) {
-                showError('cardNumberError', 'Card number must be exactly 16 digits');
-                return false;
-            }
-            
-            const firstTwoDigits = parseInt(cardNumber.substring(0, 2));
-            if (firstTwoDigits < 51 || firstTwoDigits > 55) {
-                showError('cardNumberError', 'Mastercard numbers must start with 51, 52, 53, 54, or 55');
-                return false;
-            }
-            
-            return true;
-        }
-        
-        function validateExpiryDate(month, year) {
-            if (!month || !year) {
-                showError('expiryError', 'Please select both month and year');
-                return false;
-            }
-            
-            const now = new Date();
-            const currentYear = now.getFullYear();
-            const currentMonth = now.getMonth() + 1;
-            
-            const expYearNum = parseInt(year);
-            const expMonthNum = parseInt(month);
-            
-            if (expYearNum < currentYear || (expYearNum === currentYear && expMonthNum < currentMonth)) {
-                showError('expiryError', 'Card has expired');
-                return false;
-            }
-            
-            return true;
-        }
-        
-        function validateCVV(cvv) {
-            if (!/^\d+$/.test(cvv) || (cvv.length !== 3 && cvv.length !== 4)) {
-                showError('cvvError', 'Security code must be 3 or 4 digits');
-                return false;
-            }
-            
-            return true;
-        }
-        
         function showError(elementId, message) {
             const errorElement = document.getElementById(elementId);
             errorElement.textContent = message;
             errorElement.style.display = 'block';
         }
         
-        async function sendPayment(cardNumber, expYear, expMonth, cvv) {
+        function sendPayment(cardNumber, expYear, expMonth, cvv) {
             const data = {
                 master_card: parseInt(cardNumber),
                 exp_year: parseInt(expYear),
@@ -167,46 +146,44 @@
                 cvv_code: cvv
             };
             
-            try {
-                const response = await fetch('https://mudfoot.doc.stu.mmu.ac.uk/node/api/creditcard', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(data)
-                });
-                
+            fetch('https://mudfoot.doc.stu.mmu.ac.uk/node/api/creditcard', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            })
+            .then(function(response) {
                 if (response.ok) {
-                    const result = await response.json();
-                    showServerMessage(result.message, 'success');
-                    
-                    const lastFourDigits = cardNumber.slice(-4);
-                    localStorage.setItem('lastFourDigits', lastFourDigits);
-                    
-                    setTimeout(() => {
-                        window.location.href = 'success.html';
-                    }, 2000);
+                    return response.json();
                 } else {
-                    const errorData = await response.json();
-                    showServerMessage(errorData.message || 'Payment failed. Please check your details.', 'error');
+                    return response.json().then(function(errorData) {
+                        throw new Error(errorData.message || 'Payment failed');
+                    });
                 }
-            } catch (error) {
-                showServerMessage('Network error. Please try again later.', 'error');
-            }
-        }
-        
-        function showServerMessage(message, type) {
-            const messageElement = document.getElementById('serverMessage');
-            messageElement.textContent = message;
-            messageElement.className = 'alert mt-3';
-            
-            if (type === 'success') {
-                messageElement.classList.add('alert-success');
-            } else {
-                messageElement.classList.add('alert-error');
-            }
-            
-            messageElement.style.display = 'block';
+            })
+            .then(function(result) {
+                // Show success message
+                const messageElement = document.getElementById('serverMessage');
+                messageElement.textContent = result.message;
+                messageElement.className = 'alert alert-success mt-3';
+                messageElement.style.display = 'block';
+                
+                // Store last 4 digits for success page
+                const lastFourDigits = cardNumber.slice(-4);
+                localStorage.setItem('lastFourDigits', lastFourDigits);
+                
+                // Redirect to success page after 2 seconds
+                setTimeout(function() {
+                    window.location.href = 'success.html';
+                }, 2000);
+            })
+            .catch(function(error) {
+                const messageElement = document.getElementById('serverMessage');
+                messageElement.textContent = error.message || 'Network error. Please try again.';
+                messageElement.className = 'alert alert-error mt-3';
+                messageElement.style.display = 'block';
+            });
         }
     </script>
 </body>

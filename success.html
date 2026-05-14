@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Payment Successful</title>
+    <title>M's Manga - Payment Successful</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body class="page-center" style="background: var(--primary-gradient);">
@@ -18,13 +18,6 @@
         
         <div class="card-display">
             <div class="card-number-display" id="maskedCardNumber">**** **** **** 1234</div>
-            
-            <div id="emailConfirmation" class="email-confirmation">
-                <div class="email-icon">📧</div>
-                <p>A confirmation email will be sent to:</p>
-                <p class="email-address" id="userEmailAddress">user@example.com</p>
-                <p class="form-help">Please check your inbox for the order details and receipt.</p>
-            </div>
         </div>
 
         <div class="transaction-details">
@@ -42,7 +35,7 @@
             </div>
         </div>
         
-        <a href="index.html" class="btn btn-primary btn-lg mt-3">Continue Shopping</a>
+        <a href="index.html" class="btn btn-success btn-lg mt-3">Continue Shopping</a>
     </div>
 
     <script>
@@ -50,21 +43,7 @@
         const lastFourDigits = localStorage.getItem('lastFourDigits') || '1234';
         
         // Display masked card number
-        document.getElementById('maskedCardNumber').textContent = `**** **** **** ${lastFourDigits}`;
-        
-        // Get current user information
-        const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-        
-        // Display user's email for confirmation
-        if (currentUser && currentUser.isLoggedIn && currentUser.email) {
-            document.getElementById('userEmailAddress').textContent = currentUser.email;
-        } else {
-            document.getElementById('emailConfirmation').innerHTML = `
-                <div class="email-icon">📧</div>
-                <p>Sign up for an account to receive email confirmations and track your orders!</p>
-                <a href="login.html" class="btn btn-primary mt-2">Create an Account</a>
-            `;
-        }
+        document.getElementById('maskedCardNumber').textContent = '**** **** **** ' + lastFourDigits;
         
         // Generate random transaction ID
         const transactionId = 'TXN' + Math.random().toString(36).substr(2, 9).toUpperCase();
@@ -75,18 +54,8 @@
         const formattedDate = today.toISOString().split('T')[0];
         document.getElementById('transactionDate').textContent = formattedDate;
         
-        // Clear localStorage after use
+        // Clear localStorage
         localStorage.removeItem('lastFourDigits');
-        
-        // Store order in history (optional)
-        const orders = JSON.parse(localStorage.getItem('orders') || '[]');
-        orders.push({
-            transactionId,
-            date: formattedDate,
-            cardLastFour: lastFourDigits,
-            userEmail: currentUser?.email || 'guest'
-        });
-        localStorage.setItem('orders', JSON.stringify(orders));
     </script>
 </body>
 </html>
